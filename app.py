@@ -354,10 +354,11 @@ def extract():
             return jsonify({"error": "Unsupported file type"}), 400
 
         text, meta = reader(temp_path)
+        print(f"Extracted {len(text)} characters from {filename}")
         return jsonify({
             "filename": filename,
             "metadata": meta,
-            "preview": text[:500]
+            "preview": text
         })
     except Exception as e:
         logger.exception("Extraction failed")
