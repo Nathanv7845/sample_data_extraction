@@ -92,7 +92,7 @@ class _HTMLToText(HTMLParser):
 
 def html_to_text(s: str) -> str:
     p=_HTMLToText(); p.feed(_to_str(s)); return p.get_text()
-
+from PIL import Image
 # ---------- OCR ----------
 def ocr_image_with_confidence(img: Image.Image, lang: str) -> Tuple[str, None]:
     if not OCR_AVAILABLE:
