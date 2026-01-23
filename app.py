@@ -92,7 +92,7 @@ class _HTMLToText(HTMLParser):
 
 def html_to_text(s: str) -> str:
     p=_HTMLToText(); p.feed(_to_str(s)); return p.get_text()
-from PIL import Image
+
 # ---------- OCR ----------
 def ocr_image_with_confidence(img: Image.Image, lang: str) -> Tuple[str, None]:
     if not OCR_AVAILABLE:
@@ -341,27 +341,37 @@ app = Flask(__name__)
 @app.route("/extract", methods=["POST"])
 def extract():
     try:
+        # Case 1: Form-data 
         uploaded_file = request.files.get("file")
-        if not uploaded_file:
-            return jsonify({"error": "No file uploaded"}), 400
+        if uploaded_file:
+            filename = uploaded_file.filename
+            temp_path = Path(tempfile.gettempdir()) / filename
+            uploaded_file.save(temp_path)
 
-        filename = uploaded_file.filename
-        temp_path = Path(tempfile.gettempdir()) / filename
-        uploaded_file.save(temp_path)
+        else:
+            # Case 2: JSON 
+            data = request.get_json(silent=True)
+            if not data or "base64" not in data or "filename" not in data:
+                return jsonify({"error": "No file provided"}), 400
 
+            filename = data["filename"]
+            file_bytes = base64.b64decode(data["base64"])
+            temp_path = Path(tempfile.gettempdir()) / filename
+            with open(temp_path, "wb") as f:
+                f.write(file_bytes)
+
+        # Dispatch to correct reader
         reader = READERS.get(temp_path.suffix.lower())
         if not reader:
             return jsonify({"error": "Unsupported file type"}), 400
 
         text, meta = reader(temp_path)
-        print(f"Extracted {len(text)} characters from {filename}")
         return jsonify({
             "filename": filename,
             "metadata": meta,
-            "preview": text
+            "preview": text[:500]
         })
     except Exception as e:
-        logger.exception("Extraction failed")
         return jsonify({"error": str(e)}), 500
 
 
